@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPTT - Secure Penetration Testing Toolkit</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #0f3460;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #e94560;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            color: #a0a0a0;
+            margin-top: 10px;
+        }
+        
+        .warning-banner {
+            background: #ff6b6b;
+            color: #000;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #0f3460;
+        }
+        
+        .module-btn {
+            width: 100%;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .module-btn:hover {
+            transform: translateX(5px);
+        }
+        
+        .btn-port-scanner {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+        
+        .btn-hash-cracker {
+            background: #e94560;
+            color: #fff;
+        }
+        
+        .btn-brute-force {
+            background: #ffc107;
+            color: #1a1a2e;
+        }
+        
+        .btn-security-tips {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+        
+        .btn-clear {
+            background: #6c757d;
+            color: #fff;
+        }
+        
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #0f3460;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+        
+        .panel-title {
+            font-size: 1.2rem;
+            color: #4ecca3;
+        }
+        
+        .log-console {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+        
+        .log-timestamp {
+            color: #6a737d;
+            margin-right: 10px;
+        }
+        
+        .log-output {
+            color: #c9d1d9;
+        }
+        
+        .log-success {
+            color: #3fb950;
+        }
+        
+        .log-error {
+            color: #f85149;
+        }
+        
+        .log-warning {
+            color: #d29922;
+        }
+        
+        .log-tip {
+            color: #58a6ff;
+        }
+        
+        .log-info {
+            color: #c9d1d9;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #a0a0a0;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            background: #0d1117;
+            color: #fff;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4ecca3;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .action-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        
+        .results-panel {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .results-content {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            color: #c9d1d9;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-online {
+            background: #3fb950;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            color: #6a737d;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 SPTT</h1>
+            <p class="subtitle">Secure Penetration Testing Toolkit - Web Interface</p>
+        </header>
+        
+        <div class="warning-banner">
+            ⚠️ EDUCATIONAL PURPOSE ONLY - Use Responsibly
+        </div>
+        
+        <div class="main-grid">
+            <div class="sidebar">
+                <h3 style="margin-bottom: 15px; color: #4ecca3;">📋 Modules</h3>
+                
+                <button class="module-btn btn-port-scanner" onclick="showPortScanner()">
+                    🔍 Port Scanner
+                </button>
+                
+                <button class="module-btn btn-hash-cracker" onclick="showHashCracker()">
+                    🔓 Hash Cracker
+                </button>
+                
+                <button class="module-btn btn-brute-force" onclick="showBruteForce()">
+                    🔐 Brute Force
+                </button>
+                
+                <button class="module-btn btn-security-tips" onclick="showSecurityTips()">
+                    🛡️ Security Tips
+                </button>
+                
+                <button class="module-btn btn-clear" onclick="clearLogs()">
+                    🗑️ Clear Logs
+                </button>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #0f3460;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="status-indicator status-online"></span>
+                        <span>WebSocket Connected</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-area">
+                <!-- Port Scanner Panel -->
+                <div class="panel" id="portScannerPanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">🔍 Port Scanner</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Target IP or Hostname</label>
+                        <input type="text" id="psTarget" placeholder="e.g., 192.168.1.1 or example.com">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Scan Type</label>
+                            <select id="psScanType">
+                                <option value="common">Common Ports (Fast)</option>
+                                <option value="range">Port Range (Deep)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Protocol</label>
+                            <select id="psProtocol">
+                                <option value="TCP">TCP</option>
+                                <option value="UDP">UDP</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row" id="psRangeFields" style="display: none;">
+                        <div class="form-group">
+                            <label>Start Port</label>
+                            <input type="number" id="psStartPort" value="1" min="1" max="65535">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>End Port</label>
+                            <input type="number" id="psEndPort" value="100" min="1" max="65535">
+                        </div>
+                    </div>
+                    
+                    <button class="action-btn btn-port-scanner" onclick="runPortScan()">
+                        🚀 Start Scan
+                    </button>
+                </div>
+                
+                <!-- Hash Cracker Panel -->
+                <div class="panel" id="hashCrackerPanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">🔓 Hash Cracker</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Hash Value</label>
+                        <input type="text" id="hcHash" placeholder="Enter hash to crack">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Algorithm</label>
+                            <select id="hcAlgorithm">
+                                <option value="md5">MD5</option>
+                                <option value="sha1">SHA-1</option>
+                                <option value="sha256">SHA-256</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Attack Type</label>
+                            <select id="hcAttackType">
+                                <option value="dictionary">Dictionary Attack</option>
+                                <option value="brute">Brute Force</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="hcMaxLength" style="display: none;">
+                        <label>Max Password Length (Brute Force)</label>
+                        <input type="number" id="hcMaxLen" value="4" min="1" max="6">
+                    </div>
+                    
+                    <button class="action-btn btn-hash-cracker" onclick="runHashCracker()">
+                        🚀 Start Cracking
+                    </button>
+                </div>
+                
+                <!-- Brute Force Panel -->
+                <div class="panel" id="bruteForcePanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">🔐 Brute Force Login</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Target Username</label>
+                        <input type="text" id="bfUsername" placeholder="e.g., admin">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Attack Type</label>
+                        <select id="bfAttackType">
+                            <option value="attack">Brute Force Attack</option>
+                            <option value="demo">Demo Defenses</option>
+                        </select>
+                    </div>
+                    
+                    <button class="action-btn btn-brute-force" onclick="runBruteForce()">
+                        🚀 Start Attack
+                    </button>
+                </div>
+                
+                <!-- Security Tips Panel -->
+                <div class="panel" id="securityTipsPanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">🛡️ Security Tips</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="tipsCategory">
+                            <option value="all">All Tips</option>
+                            <option value="port_scanner">Port Scanner</option>
+                            <option value="hash_cracker">Hash Cracker</option>
+                            <option value="brute_force">Brute Force</option>
+                            <option value="general">General Security</option>
+                        </select>
+                    </div>
+                    
+                    <button class="action-btn btn-security-tips" onclick="loadSecurityTips()">
+                        📖 Load Tips
+                    </button>
+                    
+                    <div id="tipsContent" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- Log Console -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">📝 Activity Log</span>
+                        <span id="logCount" style="color: #6a737d;">0 messages</span>
+                    </div>
+                    
+                    <div class="log-console" id="logConsole">
+                        <div class="log-entry">
+                            <span class="log-timestamp">--:--:--</span>
+                            <span class="log-info">Waiting for activity...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Panel -->
+                <div class="panel results-panel">
+                    <div class="panel-header">
+                        <span class="panel-title">📊 Results</span>
+                    </div>
+                    <div class="results-content" id="resultsContent">
+                        No results yet. Run a scan to see results.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Secure Penetration Testing Toolkit (SPTT) - Educational Use Only</p>
+        </div>
+    </div>
+    
+    <script>
+        // Connect to WebSocket
+        const socket = io();
+        
+        let logCount = 0;
+        
+        // WebSocket event handlers
+        socket.on('connect', function() {
+            addLog('Connected to server', 'success');
+        });
+        
+        socket.on('log_update', function(data) {
+            addLog(data.message, data.level);
+        });
+        
+        socket.on('disconnect', function() {
+            addLog('Disconnected from server', 'error');
+        });
+        
+        function addLog(message, level) {
+            const console = document.getElementById('logConsole');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-timestamp">${timestamp}</span>
+                <span class="log-${level}">${escapeHtml(message)}</span>
+            `;
+            
+            console.appendChild(entry);
+            console.scrollTop = console.scrollHeight;
+            
+            logCount++;
+            document.getElementById('logCount').textContent = logCount + ' messages';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Panel visibility functions
+        function hideAllPanels() {
+            document.getElementById('portScannerPanel').style.display = 'none';
+            document.getElementById('hashCrackerPanel').style.display = 'none';
+            document.getElementById('bruteForcePanel').style.display = 'none';
+            document.getElementById('securityTipsPanel').style.display = 'none';
+        }
+        
+        function showPortScanner() {
+            hideAllPanels();
+            document.getElementById('portScannerPanel').style.display = 'block';
+            addLog('Port Scanner module selected', 'info');
+        }
+        
+        function showHashCracker() {
+            hideAllPanels();
+            document.getElementById('hashCrackerPanel').style.display = 'block';
+            addLog('Hash Cracker module selected', 'info');
+        }
+        
+        function showBruteForce() {
+            hideAllPanels();
+            document.getElementById('bruteForcePanel').style.display = 'block';
+            addLog('Brute Force module selected', 'info');
+        }
+        
+        function showSecurityTips() {
+            hideAllPanels();
+            document.getElementById('securityTipsPanel').style.display = 'block';
+            addLog('Security Tips module selected', 'info');
+        }
+        
+        // Scan type change handler
+        document.getElementById('psScanType').addEventListener('change', function() {
+            const rangeFields = document.getElementById('psRangeFields');
+            rangeFields.style.display = this.value === 'range' ? 'grid' : 'none';
+        });
+        
+        // Attack type change handler
+        document.getElementById('hcAttackType').addEventListener('change', function() {
+            const maxLength = document.getElementById('hcMaxLength');
+            maxLength.style.display = this.value === 'brute' ? 'block' : 'none';
+        });
+        
+        // API functions
+        async function runPortScan() {
+            const target = document.getElementById('psTarget').value;
+            if (!target) {
+                addLog('Please enter a target', 'warning');
+                return;
+            }
+            
+            addLog('Starting port scan...', 'info');
+            
+            const data = {
+                target: target,
+                scan_type: document.getElementById('psScanType').value,
+                protocol: document.getElementById('psProtocol').value,
+                start_port: document.getElementById('psStartPort').value,
+                end_port: document.getElementById('psEndPort').value
+            };
+            
+            try {
+                const response = await fetch('/api/port_scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                displayResults(result.results);
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function runHashCracker() {
+            const hash = document.getElementById('hcHash').value;
+            if (!hash) {
+                addLog('Please enter a hash value', 'warning');
+                return;
+            }
+            
+            addLog('Starting hash cracker...', 'info');
+            
+            const data = {
+                hash_value: hash,
+                algorithm: document.getElementById('hcAlgorithm').value,
+                attack_type: document.getElementById('hcAttackType').value,
+                max_length: document.getElementById('hcMaxLen').value
+            };
+            
+            try {
+                const response = await fetch('/api/hash_cracker', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                displayResults(result.results);
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function runBruteForce() {
+            const username = document.getElementById('bfUsername').value;
+            if (!username) {
+                addLog('Please enter a username', 'warning');
+                return;
+            }
+            
+            addLog('Starting brute force attack...', 'info');
+            
+            const data = {
+                username: username,
+                attack_type: document.getElementById('bfAttackType').value
+            };
+            
+            try {
+                const response = await fetch('/api/brute_force', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                displayResults(result.results);
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadSecurityTips() {
+            const category = document.getElementById('tipsCategory').value;
+            
+            try {
+                const response = await fetch('/api/security_tips?category=' + category);
+                const result = await response.json();
+                
+                const tipsContent = document.getElementById('tipsContent');
+                let html = '<div style="margin-top: 15px;">';
+                
+                result.tips.forEach((tip, index) => {
+                    html += `<div style="padding: 8px; margin: 5px 0; background: #0d1117; border-radius: 4px;">
+                        ${index + 1}. ${tip}
+                    </div>`;
+                });
+                
+                html += '</div>';
+                tipsContent.innerHTML = html;
+                
+                addLog('Security tips loaded', 'success');
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function clearLogs() {
+            try {
+                await fetch('/api/clear', {method: 'POST'});
+                document.getElementById('logConsole').innerHTML = '';
+                document.getElementById('resultsContent').textContent = 'No results yet. Run a scan to see results.';
+                logCount = 0;
+                document.getElementById('logCount').textContent = '0 messages';
+                addLog('Logs cleared', 'info');
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function displayResults(results) {
+            const content = document.getElementById('resultsContent');
+            content.textContent = JSON.stringify(results, null, 2);
+        }
+        
+        // Initial log
+        addLog('SPTT Web Interface ready', 'success');
+        addLog('Select a module from the sidebar to begin', 'info');
+    </script>
+</body>
+</html>
