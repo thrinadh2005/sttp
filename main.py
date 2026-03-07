@@ -53,6 +53,7 @@ class SPTTDashboard:
         print("6. 💾 Export Results")
         print("7. ℹ️  About")
         print("8. 🌐 Launch Web Interface")
+        print("9. 🧰 Utilities")
         print("0. 🚪 Exit")
         print("-" * 40)
     
@@ -629,6 +630,9 @@ Press Enter to continue...""")
             
             elif choice == '8':
                 self.launch_web_interface()
+            
+            elif choice == '9':
+                self.utilities_menu()
                 
             else:
                 print("\n❌ Invalid choice! Please try again.")
@@ -645,6 +649,91 @@ Press Enter to continue...""")
         except Exception as e:
             print(f"\n❌ Failed to launch web interface: {e}")
         input("\nPress Enter to return to the menu...")
+
+    def utilities_menu(self):
+        print("\n" + "="*60)
+        print("🧰 UTILITIES")
+        print("="*60)
+        print("1. DNS Tools (resolve/reverse)")
+        print("2. HTTP Header Analyzer")
+        print("3. Password Strength Audit")
+        print("0. Back to main menu")
+        print("-" * 40)
+        choice = input("\n👉 Enter choice: ").strip()
+        if choice == '0':
+            return
+        if choice == '1':
+            from modules import DNSTools
+            tool = DNSTools()
+            action = input("Action (resolve/reverse) [default: resolve]: ").strip().lower() or "resolve"
+            if action == 'reverse':
+                ip = input("IP address: ").strip()
+                if not ip:
+                    print("❌ IP address is required!")
+                    return
+                hostname = tool.reverse_lookup(ip)
+                print("\n" + "="*60)
+                print("📄 Reverse DNS")
+                print("="*60)
+                print(f"IP:       {ip}")
+                print(f"Hostname: {hostname or 'Unknown'}")
+                print("="*60 + "\n")
+            else:
+                host = input("Hostname: ").strip()
+                if not host:
+                    print("❌ Hostname is required!")
+                    return
+                addrs = tool.resolve_host(host)
+                print("\n" + "="*60)
+                print("📄 DNS Resolve")
+                print("="*60)
+                print(f"Hostname: {host}")
+                print(f"Addresses: {', '.join(addrs) if addrs else 'None'}")
+                print("="*60 + "\n")
+            self.current_results['dns_tools'] = tool.get_results()
+        elif choice == '2':
+            from modules import HTTPAnalyzer
+            url = input("URL (e.g., https://example.com): ").strip()
+            if not url:
+                print("❌ URL is required!")
+                return
+            analyzer = HTTPAnalyzer(url)
+            analyzer.fetch_headers()
+            analyzer.analyze()
+            res = analyzer.get_results()
+            print("\n" + "="*60)
+            print("📄 HTTP Header Analysis")
+            print("="*60)
+            print(f"URL: {res['url']}")
+            print("Server:", res['analysis'].get('server'))
+            print("Content-Type:", res['analysis'].get('content_type'))
+            print("Security Headers:")
+            for k, v in res['analysis'].get('security_headers', {}).items():
+                print(f"  {k}: {v}")
+            print("="*60 + "\n")
+            self.current_results['http_analyzer'] = res
+        elif choice == '3':
+            from modules import PasswordAuditor
+            password = input("Password to evaluate: ").strip()
+            if not password:
+                print("❌ Password is required!")
+                return
+            auditor = PasswordAuditor()
+            res = auditor.evaluate(password)
+            print("\n" + "="*60)
+            print("📄 Password Strength Audit")
+            print("="*60)
+            print(f"Score: {res['score']}")
+            if res['issues']:
+                print("Issues:", ", ".join(res['issues']))
+            if res['suggestions']:
+                print("Suggestions:", ", ".join(res['suggestions']))
+            print("="*60 + "\n")
+            self.current_results['password_auditor'] = res
+        else:
+            print("\n❌ Invalid choice!")
+        print("\n")
+        SecurityTips.display_tips(SecurityTips.get_general_tips(), "🛡️ General Security Tips")
 
 def main():
     """Main entry point."""

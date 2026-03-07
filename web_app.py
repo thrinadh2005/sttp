@@ -18,6 +18,7 @@ from flask_socketio import SocketIO, emit
 
 from modules import PortScanner, HashCracker, BruteForceLogin
 from modules.brute_force import MockLoginSystem
+from modules import DNSTools, HTTPAnalyzer, PasswordAuditor
 from utils import SecurityTips
 
 app = Flask(__name__)
@@ -131,44 +132,60 @@ def port_scan():
         return jsonify({'status': 'error', 'message': str(e)})
 
 
+
+
 @app.route('/api/hash_cracker', methods=['POST'])
 def hash_cracker():
-    """Execute hash crack."""
+    """Execute hash cracking attacks."""
     data = request.json
-    hash_value = data.get('hash_value', '')
-    algorithm = data.get('algorithm', 'md5')
+    hash_value = data.get('hash_value', '').strip()
+    algorithm = data.get('algorithm', 'md5').lower()
     attack_type = data.get('attack_type', 'dictionary')
     
-    log_message(f"Starting hash cracker", "info")
-    log_message(f"Hash: {hash_value[:20]}...", "info")
-    log_message(f"Algorithm: {algorithm}, Attack: {attack_type}", "info")
+    if not hash_value:
+        return jsonify({'status': 'error', 'message': 'Hash value is required'})
     
     try:
         cracker = HashCracker(hash_value, algorithm)
+        log_message(f"Starting hash crack | algo={algorithm} | type={attack_type}", "info")
         
         if attack_type == 'dictionary':
-            wordlist = HashCracker.get_common_passwords()
-            password, attempts = cracker.crack_with_dictionary(wordlist, show_progress=False)
-        else:
+            wordlist = data.get('wordlist') or HashCracker.get_common_passwords()
+            pwd, attempts = cracker.crack_with_dictionary(wordlist, show_progress=False)
+        elif attack_type == 'brute':
             max_length = int(data.get('max_length', 4))
-            password, attempts = cracker.crack_with_brute_force(max_length, show_progress=False)
-        
-        crack_results = cracker.get_results()
-        results['hash_cracker'] = crack_results
-        
-        if password:
-            log_message(f"✅ Password found: {password}", "success")
+            pwd, attempts = cracker.crack_with_brute_force(max_length=max_length, show_progress=False)
+        elif attack_type == 'rules':
+            wordlist = data.get('wordlist') or HashCracker.get_common_passwords()
+            prefixes = data.get('prefixes') or None
+            suffixes = data.get('suffixes') or None
+            if isinstance(prefixes, str):
+                prefixes = [p.strip() for p in prefixes.split(',') if p.strip()]
+            if isinstance(suffixes, str):
+                suffixes = [s.strip() for s in suffixes.split(',') if s.strip()]
+            pwd, attempts = cracker.crack_with_rules(wordlist, suffixes=suffixes, prefixes=prefixes, show_progress=False)
+        elif attack_type == 'mask':
+            mask = data.get('mask', '?l?l?l?d')
+            pwd, attempts = cracker.crack_with_mask(mask, show_progress=False)
         else:
-            log_message("❌ Password not found", "warning")
+            return jsonify({'status': 'error', 'message': 'Unsupported attack_type'})
         
-        # Show security tips
+        hc_results = cracker.get_results()
+        results['hash_cracker'] = hc_results
+        
+        if hc_results.get('found_password'):
+            log_message(f"Success: password found after {hc_results.get('attempts')} attempts", "success")
+        else:
+            log_message("Completed: password not found", "warning")
+        
+        # Security tips
         tips = SecurityTips.get_hash_cracker_tips()
         log_message("🛡️ Security Tips:", "tip")
         for tip in tips[:3]:
             log_message(f"  {tip}", "tip")
         
-        return jsonify({'status': 'success', 'results': crack_results})
-        
+        return jsonify({'status': 'success', 'results': hc_results})
+    
     except Exception as e:
         log_message(f"Error: {str(e)}", "error")
         return jsonify({'status': 'error', 'message': str(e)})
@@ -176,42 +193,37 @@ def hash_cracker():
 
 @app.route('/api/brute_force', methods=['POST'])
 def brute_force():
-    """Execute brute force login attack."""
+    """Execute brute force login simulation."""
     data = request.json
-    target_user = data.get('username', '')
-    attack_type = data.get('attack_type', 'attack')
+    username = data.get('username', '').strip()
+    action = data.get('attack_type', 'attack')
     
-    log_message(f"Brute Force Login - {attack_type}", "info")
+    if not username and action == 'attack':
+        return jsonify({'status': 'error', 'message': 'Username is required'})
     
     try:
         login_system = MockLoginSystem()
-        brute_force = BruteForceLogin(login_system)
+        attacker = BruteForceLogin(login_system)
         
-        if attack_type == 'attack':
-            password_list = HashCracker.get_common_passwords()
-            password, attempts = brute_force.brute_force_attack(
-                target_user, password_list, show_progress=False
-            )
+        if action == 'demo':
+            log_message("Demonstrating defenses (lockout and rate limiting)", "info")
+            attacker.demonstrate_defenses()
+            bf_results = {'demo': True}
         else:
-            # Demo defenses
-            brute_force.demonstrate_defenses()
-            password = "demo"
-            attempts = 0
+            log_message(f"Starting brute force against user '{username}'", "info")
+            password_list = data.get('password_list') or HashCracker.get_common_passwords()
+            pwd, attempts = attacker.brute_force_attack(username, password_list, show_progress=False)
+            bf_results = attacker.get_results()
         
-        bf_results = brute_force.get_results()
         results['brute_force'] = bf_results
         
-        if password and attack_type == 'attack':
-            log_message(f"✅ Password found: {password}", "success")
-        
-        # Show security tips
         tips = SecurityTips.get_brute_force_tips()
         log_message("🛡️ Security Tips:", "tip")
         for tip in tips[:3]:
             log_message(f"  {tip}", "tip")
         
         return jsonify({'status': 'success', 'results': bf_results})
-        
+    
     except Exception as e:
         log_message(f"Error: {str(e)}", "error")
         return jsonify({'status': 'error', 'message': str(e)})
@@ -233,6 +245,74 @@ def get_security_tips():
     
     return jsonify({'tips': tips})
 
+@app.route('/api/dns_tools', methods=['POST'])
+def dns_tools():
+    """DNS resolve/reverse utilities."""
+    data = request.json or {}
+    action = data.get('action', 'resolve')
+    query = data.get('query', '').strip()
+    if not query:
+        return jsonify({'status': 'error', 'message': 'Query is required'})
+    try:
+        tool = DNSTools()
+        if action == 'reverse':
+            log_message(f"DNS reverse lookup for {query}", "info")
+            hostname = tool.reverse_lookup(query)
+            log_message(f"Reverse result: {hostname or 'Unknown'}", "info")
+        else:
+            log_message(f"DNS resolve for {query}", "info")
+            addrs = tool.resolve_host(query)
+            log_message(f"Resolve result: {', '.join(addrs) if addrs else 'None'}", "info")
+        res = tool.get_results()
+        results['dns_tools'] = res
+        return jsonify({'status': 'success', 'results': res})
+    except Exception as e:
+        log_message(f"Error: {str(e)}", "error")
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/http_analyzer', methods=['POST'])
+def http_analyzer():
+    """HTTP header analyzer."""
+    data = request.json or {}
+    url = data.get('url', '').strip()
+    if not url:
+        return jsonify({'status': 'error', 'message': 'URL is required'})
+    try:
+        log_message(f"Fetching headers for {url}", "info")
+        analyzer = HTTPAnalyzer(url)
+        analyzer.fetch_headers()
+        analyzer.analyze()
+        res = analyzer.get_results()
+        results['http_analyzer'] = res
+        sec = res.get('analysis', {}).get('security_headers', {})
+        log_message("Security headers summary:", "tip")
+        for k, v in sec.items():
+            log_message(f"  {k}: {v}", "tip")
+        return jsonify({'status': 'success', 'results': res})
+    except Exception as e:
+        log_message(f"Error: {str(e)}", "error")
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/password_audit', methods=['POST'])
+def password_audit():
+    """Password strength auditing."""
+    data = request.json or {}
+    password = data.get('password', '')
+    if not password:
+        return jsonify({'status': 'error', 'message': 'Password is required'})
+    try:
+        auditor = PasswordAuditor()
+        res = auditor.evaluate(password)
+        results['password_auditor'] = res
+        log_message(f"Password score: {res.get('score')}", "info")
+        if res.get('issues'):
+            log_message("Issues detected:", "warning")
+            for i in res['issues'][:5]:
+                log_message(f"  {i}", "warning")
+        return jsonify({'status': 'success', 'results': res})
+    except Exception as e:
+        log_message(f"Error: {str(e)}", "error")
+        return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
     log_message("="*50, "info")

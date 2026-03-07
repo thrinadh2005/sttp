@@ -19,6 +19,9 @@ An educational toolkit that simulates common offensive techniques and defensive 
   - Port scanning: [port_scanner.py](file:///d:/PROJECTS/SPTT/modules/port_scanner.py)
   - Hash cracking: [hash_cracker.py](file:///d:/PROJECTS/SPTT/modules/hash_cracker.py)
   - Brute‑force login simulation: [brute_force.py](file:///d:/PROJECTS/SPTT/modules/brute_force.py)
+  - DNS tools (resolve/reverse): [dns_tools.py](file:///d:/PROJECTS/SPTT/modules/dns_tools.py)
+  - HTTP header analyzer: [http_analyzer.py](file:///d:/PROJECTS/SPTT/modules/http_analyzer.py)
+  - Password strength auditor: [password_auditor.py](file:///d:/PROJECTS/SPTT/modules/password_auditor.py)
 - Utilities: [utils](file:///d:/PROJECTS/SPTT/utils)
 - Quick launcher (Windows): [launch.bat](file:///d:/PROJECTS/SPTT/launch.bat)
 - Python dependencies: [requirements.txt](file:///d:/PROJECTS/SPTT/requirements.txt)
@@ -78,6 +81,9 @@ SPTT provides a guided, safe environment to:
 - Scan ports (TCP/UDP) on allowed targets
 - Explore password hashing weaknesses
 - Simulate brute‑force attacks against a mock login system
+- Perform DNS lookups and reverse lookups
+- Inspect HTTP headers and common security headers
+- Evaluate password strength with actionable suggestions
 
 Both the CLI and Web UI execute the same underlying modules and summarize results with timestamps, attempts, and contextual tips.
 
@@ -256,17 +262,109 @@ Key reference: [brute_force.py](file:///d:/PROJECTS/SPTT/modules/brute_force.py)
 
 ---
 
+### 4) DNS Tools
+- Actions: Resolve hostname to IPs, Reverse lookup IP to hostname
+- Output: Addresses or hostname, timing summary
+
+CLI walkthrough:
+1. Start `python main.py`
+2. Choose “Utilities” → “DNS Tools”
+3. Select “resolve” and enter `example.com`
+4. Review resolved addresses
+
+Programmatic example:
+
+```python
+from modules import DNSTools
+
+dns = DNSTools()
+addrs = dns.resolve_host("example.com")
+print(addrs, dns.get_results())
+```
+
+Key reference: [dns_tools.py](file:///d:/PROJECTS/SPTT/modules/dns_tools.py)
+
+---
+
+### 5) HTTP Header Analyzer
+- Purpose: Inspect server headers and check presence of common security headers
+- Output: Server, content type, security header presence matrix
+
+CLI walkthrough:
+1. Start `python main.py`
+2. Choose “Utilities” → “HTTP Header Analyzer”
+3. Enter `https://example.com`
+4. Review reported headers and security indicators
+
+Programmatic example:
+
+```python
+from modules import HTTPAnalyzer
+
+ha = HTTPAnalyzer("https://example.com")
+ha.fetch_headers()
+ha.analyze()
+print(ha.get_results())
+```
+
+Key reference: [http_analyzer.py](file:///d:/PROJECTS/SPTT/modules/http_analyzer.py)
+
+---
+
+### 6) Password Strength Auditor
+- Purpose: Score password strength and list issues/suggestions
+- Checks: Length, character classes, repeats, sequences, common passwords
+
+CLI walkthrough:
+1. Start `python main.py`
+2. Choose “Utilities” → “Password Strength Audit”
+3. Enter a password and review the score and suggestions
+
+Programmatic example:
+
+```python
+from modules import PasswordAuditor
+
+pa = PasswordAuditor()
+result = pa.evaluate("P@ssw0rd123!")
+print(result)
+```
+
+Key reference: [password_auditor.py](file:///d:/PROJECTS/SPTT/modules/password_auditor.py)
+
+---
+
 ## 🌐 Web Interface
 
 - Start with `launch.bat` (Windows) or `python web_app.py`
 - Navigate to http://localhost:5000
 - Real‑time activity log and results panel
-- Run port scans and load security tips from the browser
+- Run port scans, hash cracks, brute‑force simulations
+- Utilities: DNS Tools, HTTP Header Analyzer, Password Strength Audit
 
 Key server: [web_app.py](file:///d:/PROJECTS/SPTT/web_app.py) • UI: [index.html](file:///d:/PROJECTS/SPTT/templates/index.html)
 
 ---
 
+### Web UI Walkthrough (New Utilities)
+
+- DNS Tools
+  1. Open the Web UI
+  2. In the sidebar, under “Utilities”, select “DNS Tools”
+  3. Choose “Resolve” and enter `example.com` or “Reverse” with an IP
+  4. Review addresses or hostname in the Results panel
+
+- HTTP Header Analyzer
+  1. Select “HTTP Analyzer” under “Utilities”
+  2. Enter a URL like `https://example.com`
+  3. Review server, content-type, and security header presence
+
+- Password Strength Audit
+  1. Select “Password Audit” under “Utilities”
+  2. Enter a password to evaluate
+  3. See score, issues, and suggestions in Results
+
+---
 ## 💾 Exporting Results
 
 From the CLI dashboard:

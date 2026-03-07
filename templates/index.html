@@ -316,6 +316,20 @@
                     🛡️ Security Tips
                 </button>
                 
+                <h3 style="margin: 20px 0 10px; color: #4ecca3;">🧰 Utilities</h3>
+                
+                <button class="module-btn btn-port-scanner" onclick="showDNSTools()">
+                    📡 DNS Tools
+                </button>
+                
+                <button class="module-btn btn-hash-cracker" onclick="showHTTPAnalyzer()">
+                    🧾 HTTP Analyzer
+                </button>
+                
+                <button class="module-btn btn-brute-force" onclick="showPasswordAudit()">
+                    🔑 Password Audit
+                </button>
+                
                 <button class="module-btn btn-clear" onclick="clearLogs()">
                     🗑️ Clear Logs
                 </button>
@@ -393,6 +407,8 @@
                                 <option value="md5">MD5</option>
                                 <option value="sha1">SHA-1</option>
                                 <option value="sha256">SHA-256</option>
+                                <option value="sha512">SHA-512</option>
+                                <option value="sha3_256">SHA3-256</option>
                             </select>
                         </div>
                         
@@ -401,6 +417,8 @@
                             <select id="hcAttackType">
                                 <option value="dictionary">Dictionary Attack</option>
                                 <option value="brute">Brute Force</option>
+                                <option value="rules">Rule-Based</option>
+                                <option value="mask">Mask</option>
                             </select>
                         </div>
                     </div>
@@ -408,6 +426,22 @@
                     <div class="form-group" id="hcMaxLength" style="display: none;">
                         <label>Max Password Length (Brute Force)</label>
                         <input type="number" id="hcMaxLen" value="4" min="1" max="6">
+                    </div>
+                    
+                    <div class="form-row" id="hcRuleFields" style="display: none;">
+                        <div class="form-group">
+                            <label>Prefixes (comma-separated)</label>
+                            <input type="text" id="hcPrefixes" placeholder="e.g., !,@,#">
+                        </div>
+                        <div class="form-group">
+                            <label>Suffixes (comma-separated)</label>
+                            <input type="text" id="hcSuffixes" placeholder="e.g., 1,123,!">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="hcMaskField" style="display: none;">
+                        <label>Mask (e.g., ?l?l?l?d)</label>
+                        <input type="text" id="hcMask" value="?l?l?l?d">
                     </div>
                     
                     <button class="action-btn btn-hash-cracker" onclick="runHashCracker()">
@@ -461,6 +495,57 @@
                     </button>
                     
                     <div id="tipsContent" style="margin-top: 20px;"></div>
+                </div>
+                
+                <!-- DNS Tools Panel -->
+                <div class="panel" id="dnsToolsPanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">📡 DNS Tools</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Action</label>
+                            <select id="dnsAction">
+                                <option value="resolve">Resolve Hostname</option>
+                                <option value="reverse">Reverse Lookup</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Query</label>
+                            <input type="text" id="dnsQuery" placeholder="Hostname or IP">
+                        </div>
+                    </div>
+                    <button class="action-btn btn-port-scanner" onclick="runDNSTools()">
+                        🚀 Run DNS Tool
+                    </button>
+                </div>
+                
+                <!-- HTTP Analyzer Panel -->
+                <div class="panel" id="httpAnalyzerPanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">🧾 HTTP Header Analyzer</span>
+                    </div>
+                    <div class="form-group">
+                        <label>URL</label>
+                        <input type="text" id="httpUrl" placeholder="e.g., https://example.com">
+                    </div>
+                    <button class="action-btn btn-hash-cracker" onclick="runHTTPAnalyzer()">
+                        🚀 Analyze Headers
+                    </button>
+                </div>
+                
+                <!-- Password Audit Panel -->
+                <div class="panel" id="passwordAuditPanel" style="display: none;">
+                    <div class="panel-header">
+                        <span class="panel-title">🔑 Password Strength Audit</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="text" id="auditPassword" placeholder="Enter password to evaluate">
+                    </div>
+                    <button class="action-btn btn-brute-force" onclick="runPasswordAudit()">
+                        🚀 Evaluate Password
+                    </button>
                 </div>
                 
                 <!-- Log Console -->
@@ -544,6 +629,9 @@
             document.getElementById('hashCrackerPanel').style.display = 'none';
             document.getElementById('bruteForcePanel').style.display = 'none';
             document.getElementById('securityTipsPanel').style.display = 'none';
+            document.getElementById('dnsToolsPanel').style.display = 'none';
+            document.getElementById('httpAnalyzerPanel').style.display = 'none';
+            document.getElementById('passwordAuditPanel').style.display = 'none';
         }
         
         function showPortScanner() {
@@ -570,6 +658,24 @@
             addLog('Security Tips module selected', 'info');
         }
         
+        function showDNSTools() {
+            hideAllPanels();
+            document.getElementById('dnsToolsPanel').style.display = 'block';
+            addLog('DNS Tools module selected', 'info');
+        }
+        
+        function showHTTPAnalyzer() {
+            hideAllPanels();
+            document.getElementById('httpAnalyzerPanel').style.display = 'block';
+            addLog('HTTP Analyzer module selected', 'info');
+        }
+        
+        function showPasswordAudit() {
+            hideAllPanels();
+            document.getElementById('passwordAuditPanel').style.display = 'block';
+            addLog('Password Audit module selected', 'info');
+        }
+        
         // Scan type change handler
         document.getElementById('psScanType').addEventListener('change', function() {
             const rangeFields = document.getElementById('psRangeFields');
@@ -579,7 +685,12 @@
         // Attack type change handler
         document.getElementById('hcAttackType').addEventListener('change', function() {
             const maxLength = document.getElementById('hcMaxLength');
+            const ruleFields = document.getElementById('hcRuleFields');
+            const maskField = document.getElementById('hcMaskField');
+            
             maxLength.style.display = this.value === 'brute' ? 'block' : 'none';
+            ruleFields.style.display = this.value === 'rules' ? 'grid' : 'none';
+            maskField.style.display = this.value === 'mask' ? 'block' : 'none';
         });
         
         // API functions
@@ -625,9 +736,17 @@
             const data = {
                 hash_value: hash,
                 algorithm: document.getElementById('hcAlgorithm').value,
-                attack_type: document.getElementById('hcAttackType').value,
-                max_length: document.getElementById('hcMaxLen').value
+                attack_type: document.getElementById('hcAttackType').value
             };
+            
+            if (data.attack_type === 'brute') {
+                data.max_length = document.getElementById('hcMaxLen').value;
+            } else if (data.attack_type === 'rules') {
+                data.prefixes = document.getElementById('hcPrefixes').value;
+                data.suffixes = document.getElementById('hcSuffixes').value;
+            } else if (data.attack_type === 'mask') {
+                data.mask = document.getElementById('hcMask').value || '?l?l?l?d';
+            }
             
             try {
                 const response = await fetch('/api/hash_cracker', {
@@ -702,6 +821,67 @@
                 logCount = 0;
                 document.getElementById('logCount').textContent = '0 messages';
                 addLog('Logs cleared', 'info');
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function runDNSTools() {
+            const query = document.getElementById('dnsQuery').value;
+            if (!query) {
+                addLog('Please enter a hostname or IP', 'warning');
+                return;
+            }
+            const action = document.getElementById('dnsAction').value;
+            addLog(`Running DNS ${action}...`, 'info');
+            try {
+                const response = await fetch('/api/dns_tools', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({action, query})
+                });
+                const result = await response.json();
+                displayResults(result.results);
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function runHTTPAnalyzer() {
+            const url = document.getElementById('httpUrl').value;
+            if (!url) {
+                addLog('Please enter a URL', 'warning');
+                return;
+            }
+            addLog('Analyzing HTTP headers...', 'info');
+            try {
+                const response = await fetch('/api/http_analyzer', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url})
+                });
+                const result = await response.json();
+                displayResults(result.results);
+            } catch (error) {
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function runPasswordAudit() {
+            const password = document.getElementById('auditPassword').value;
+            if (!password) {
+                addLog('Please enter a password', 'warning');
+                return;
+            }
+            addLog('Evaluating password...', 'info');
+            try {
+                const response = await fetch('/api/password_audit', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password})
+                });
+                const result = await response.json();
+                displayResults(result.results);
             } catch (error) {
                 addLog('Error: ' + error.message, 'error');
             }
