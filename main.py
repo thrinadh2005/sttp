@@ -738,8 +738,12 @@ Press Enter to continue...""")
 def main():
     """Main entry point."""
     try:
+        import sys
+        if not sys.stdin.isatty():
+            print("Non-interactive environment detected. Skipping CLI dashboard.")
+            print("Use the web interface or import modules programmatically.")
+            return
         dashboard = SPTTDashboard()
-        dashboard.run()
         dashboard.run()
     except KeyboardInterrupt:
         print("\n\n👋 Program interrupted. Goodbye!")
@@ -747,7 +751,12 @@ def main():
         print(f"\n❌ Error: {e}")
         import traceback
         traceback.print_exc()
-        input("\nPress Enter to exit...")
+        try:
+            import sys as _sys
+            if _sys.stdin.isatty():
+                input("\nPress Enter to exit...")
+        except EOFError:
+            pass
 
 
 if __name__ == "__main__":
