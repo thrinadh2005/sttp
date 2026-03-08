@@ -23,7 +23,7 @@ from utils import SecurityTips
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sptt-secret-key'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # Global state for logs and results
 logs = []
@@ -43,7 +43,10 @@ def log_message(message, level="info"):
     if len(logs) > 500:
         logs.pop(0)
     # Emit to web clients
-    socketio.emit('log_update', log_entry)
+    try:
+        socketio.emit('log_update', log_entry)
+    except Exception:
+        pass
 
 
 class OutputCapture:
@@ -244,6 +247,11 @@ def get_security_tips():
         tips = SecurityTips.get_general_tips()
     
     return jsonify({'tips': tips})
+
+@app.route('/api/ping')
+def ping():
+    """Health check endpoint."""
+    return jsonify({'status': 'ok'})
 
 @app.route('/api/dns_tools', methods=['POST'])
 def dns_tools():

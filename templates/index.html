@@ -582,13 +582,16 @@
     
     <script>
         // Connect to WebSocket
-        const socket = io();
+        let pollTimer = null;
+        let lastRendered = 0;
+        const socket = io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 5 });
         
         let logCount = 0;
         
         // WebSocket event handlers
         socket.on('connect', function() {
             addLog('Connected to server', 'success');
+            stopPolling();
         });
         
         socket.on('log_update', function(data) {
@@ -597,6 +600,7 @@
         
         socket.on('disconnect', function() {
             addLog('Disconnected from server', 'error');
+            startPolling();
         });
         
         function addLog(message, level) {
@@ -615,6 +619,37 @@
             
             logCount++;
             document.getElementById('logCount').textContent = logCount + ' messages';
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                const items = data.logs || [];
+                if (items.length < lastRendered) {
+                    document.getElementById('logConsole').innerHTML = '';
+                    logCount = 0;
+                    lastRendered = 0;
+                }
+                for (let i = lastRendered; i < items.length; i++) {
+                    addLog(items[i].message, items[i].level || 'info');
+                }
+                lastRendered = items.length;
+            } catch (e) {
+                // ignore transient errors
+            }
+        }
+
+        function startPolling() {
+            if (pollTimer) return;
+            pollTimer = setInterval(fetchLogs, 2000);
+        }
+
+        function stopPolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
         }
         
         function escapeHtml(text) {
@@ -895,6 +930,8 @@
         // Initial log
         addLog('SPTT Web Interface ready', 'success');
         addLog('Select a module from the sidebar to begin', 'info');
+        // Start polling as a fallback in environments without WebSocket support
+        startPolling();
     </script>
 </body>
 </html>
